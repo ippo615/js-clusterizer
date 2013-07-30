@@ -1,4 +1,5 @@
 js-clusterizer
 ==============
 
-JavaScript code for learning about machine learning algorithms and data manipulation.
+JavaScript code for machine learning algorithms and other data manipulation tools.
+Try it at: https://ippo615.github.io/js-clusterizer

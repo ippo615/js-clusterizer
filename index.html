@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Clustering</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width">
+
+        <link rel="stylesheet" href="css/normalize.min.css">
+	<style type="text/css">
+		body {background-color: #FFF; text-align:center;}
+		canvas {border: 1px solid #000; display:inline-block; margin: 20px;}
+		textarea {width: 100%;}
+		img {display:none;}
+		label {display: block; padding-top: 12px;}
+		input {display: block;}
+		table {text-align: center; display:inline-block;}
+		.score-high {background-color: #F66}
+		.score-low {background-color: #6F6}
+		p, input, label, select, option, h2, h3, h4, h5, h6 {text-align: left; display: block;}
+		article {display: inline-block; text-align: center; background: #EEE; padding: 14px;}
+		figure {display: inline-block; text-align: center; vertical-align: middle;}
+		button {display: block; width: 100%;}
+		section {width: 620px; padding: 10px; display: inline-block; vertical-align: middle;}
+	</style>
+        <!--[if lt IE 9]>
+            <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+            <script>window.html5 || document.write('<script src="js/html5shiv.js"><\/script>')</script>
+        <![endif]-->
+    </head>
+    <body>
+
+<article>
+	<h1>Clustering</h1>
+
+	<section>
+	<label for="inDistance">Distance Threshold (pixels):</label><input type="text" id="inDistance" value="19"></input>
+	<label for="inK">K (means):</label><input type="text" id="inK" value="2"></input>
+	<label for="inX">Which dimension will be plotted as x:</label><input type="text" id="inX" value="0"></input>
+	<label for="inY">Which dimension will be plotted as y:</label><input type="text" id="inY" value="1"></input>
+	<label for="inColor">Color for linear discriminant function(s):</label><input type="text" id="inColor" value="#000"></input>
+	<label for="inLDF_Type">Linear Discriminant function:</label>
+		<select id="inLDF_Type">
+			<option>Perceptron</option>
+			<option>Mean Squared Error (MSE)</option>
+			<option>Fisher (MSE variant)</option>
+			<option>Fisher (Scatter Matrix)</option>
+			<option selected="selected">Ho Kashup</option>
+		</select><br/>
+	<label for="inLDF_Method">Linear Machine Type:</label>
+		<select id="inLDF_Method">
+			<option selected="selected">Binary (in class[i] or not class[i])</option>
+			<option>Combinary (in class[i] or class[j])</option>
+		</select><br/>
+	
+	<label for="inPoints">List of points:</label><textarea rows="10" id="inPoints">Click in the box below to add points to the list or type them in this box as X comma Y coordinates
+This data set helps show the differences in the clustering algorithms: use k=4
+27,18
+7,53
+71,34
+17,76
+95,38
+27,101
+124,38
+95,114
+120,101
+144,117
+143,91
+71,63
+53,115
+181,51</textarea>
+</section>
+
+	<section>
+    <div style="text-align: center">
+	<div style="display: inline-block; width: 20%; vertical-align: middle;">
+		<button id="btScale">Rescale Points</button>
+		<button id="btui_clear_points">ui_clear_points All Points</button>
+		<p></p>
+		<button id="btDataDef">Load Default</button>
+		<button id="btData2D1">Load 2D 1</button>
+		<button id="btData2D2">Load 2D 2</button>
+		<button id="btData3D1">Load 3D 1</button>
+		<button id="btData3D2">Load 3D 2</button>
+	</div>
+	<figure >
+		<canvas id="canvasCluster" width="240" height="240"></canvas>
+	</figure>
+        <div style="display: inline-block; width: 20%; vertical-align: middle;">
+
+		<button id="btData1">Load Face Example </button>
+		<button id="btData2">Load 3D Example </button>
+		<button id="btData3">Load Concentric Example </button>
+		<button id="btData4">Load Lines Example </button>
+	</div>
+    </div>
+	<table id="tableScore">
+	<tr>
+		<td>Score</td>
+		<td><button id="btCluster">Cluster</button></td>
+		<td><button id="btKMeans">K-Means</button></td>
+		<td><button id="btKHeirNear">Nearest</button></td>
+		<td><button id="btKHeirFar">Farthest</button></td>
+		<td><button id="btKHeirAvg">Average</button></td>
+		<td><button id="btKHeirCenter">Neighborhood</button></td>
+	</tr>
+	<tr>
+		<td>SMAXE</td>
+		<td id="td_SMAXE_CL">0</td>
+		<td id="td_SMAXE_KM">0</td>
+		<td id="td_SMAXE_NN">0</td>
+		<td id="td_SMAXE_FN">0</td>
+		<td id="td_SMAXE_AN">0</td>
+		<td id="td_SMAXE_NC">0</td>
+	</tr>
+	<tr>
+		<td>SMINE</td>
+		<td id="td_SMINE_CL">0</td>
+		<td id="td_SMINE_KM">0</td>
+		<td id="td_SMINE_NN">0</td>
+		<td id="td_SMINE_FN">0</td>
+		<td id="td_SMINE_AN">0</td>
+		<td id="td_SMINE_NC">0</td>
+	</tr>
+	<tr>
+		<td>SAVGE</td>
+		<td id="td_SAVGE_CL">0</td>
+		<td id="td_SAVGE_KM">0</td>
+		<td id="td_SAVGE_NN">0</td>
+		<td id="td_SAVGE_FN">0</td>
+		<td id="td_SAVGE_AN">0</td>
+		<td id="td_SAVGE_NC">0</td>
+	</tr>
+	<tr>
+		<td>SMEDE</td>
+		<td id="td_SMEDE_CL">0</td>
+		<td id="td_SMEDE_KM">0</td>
+		<td id="td_SMEDE_NN">0</td>
+		<td id="td_SMEDE_FN">0</td>
+		<td id="td_SMEDE_AN">0</td>
+		<td id="td_SMEDE_NC">0</td>
+	</tr>
+	<tr>
+		<td>TrScT</td>
+		<td id="td_TrScT_CL">0</td>
+		<td id="td_TrScT_KM">0</td>
+		<td id="td_TrScT_NN">0</td>
+		<td id="td_TrScT_FN">0</td>
+		<td id="td_TrScT_AN">0</td>
+		<td id="td_TrScT_NC">0</td>
+	</tr>
+	<tr>
+		<td>tr(Sw'Sb)</td>
+		<td id="td_SwSb_CL">0</td>
+		<td id="td_SwSb_KM">0</td>
+		<td id="td_SwSb_NN">0</td>
+		<td id="td_SwSb_FN">0</td>
+		<td id="td_SwSb_AN">0</td>
+		<td id="td_SwSb_NC">0</td>
+	</tr>
+	<tr>
+		<td>tr(SwSt')</td>
+		<td id="td_SwSt_CL">0</td>
+		<td id="td_SwSt_KM">0</td>
+		<td id="td_SwSt_NN">0</td>
+		<td id="td_SwSt_FN">0</td>
+		<td id="td_SwSt_AN">0</td>
+		<td id="td_SwSt_NC">0</td>
+	</tr>
+	<tr>
+		<td>Det(SW)</td>
+		<td id="td_DetSW_CL">0</td>
+		<td id="td_DetSW_KM">0</td>
+		<td id="td_DetSW_NN">0</td>
+		<td id="td_DetSW_FN">0</td>
+		<td id="td_DetSW_AN">0</td>
+		<td id="td_DetSW_NC">0</td>
+	</tr>
+	<tr>
+		<td>Det(SW)/Det(ST)</td>
+		<td id="td_DetSWST_CL">0</td>
+		<td id="td_DetSWST_KM">0</td>
+		<td id="td_DetSWST_NN">0</td>
+		<td id="td_DetSWST_FN">0</td>
+		<td id="td_DetSWST_AN">0</td>
+		<td id="td_DetSWST_NC">0</td>
+	</tr>
+	</table>
+	</section>
+	
+	<section>
+	<h2>The Clustering Algorithms Explained</h2>
+	<p>Given a bunch a data points, it would be nice to group them into
+	separate classes. Clustering algorithms are used for taking a set of data
+	and dividing it into distict classes or groups. There are 2 general
+	approaches to grouping the data: (1) let the data decide how many unique
+	groups exist or (2) specify the number of the groups (ie k groups) and
+	force the data into that number of unique groups (ie k groups).</p>
+	
+	<h3>Cluster</h3>
+	<p>It starts at an arbitray point and considers that point a group (or
+	"cluster"). It then adds all of the points that are within a specific
+	distance (the distance threshold) to that group. It then goes through all
+	of the newly added points in a similar manner to the first point adding all
+	of the points that are within a specific distance to that group. That is
+	repeated until no new points are added.</p>
+	<p>Then an ungrouped (arbitrary) point is used to start a new group. The
+	process repeats as described above.</p>
+	<p>The algorithm stops when all of the points are in a group.</p>
+	
+	<h3>K-Means</h3>
+	<p>An integer number of points (k points) are arbitrarily selected. Each k
+	point is considered a group. Each of the remaining points is added to the
+	group that it is closest to. This causes the center of each group to move
+	from its original position.</p>
+	<p>As long as the group centers are moving, regroup every point based on
+	the last group centers. The algorithm stops when the centers stop moving
+	(or too many iteratations have occured).</p>
+	
+	<h3>Heirarchical K-Means Nearest Neighbors</h3>
+	<p>Start by considering each point a separate group. While there are more
+	than K groups: combine the two groups who have the smallest distance between
+	their nearest neighbors. The nearest neighbors consists of the point in
+	Group-A that is nearest to the point in Group-B (for example).</p>
+	
+	<h3>Heirarchical K-Means Farthest Neighbors</h3>
+	<p>Start by considering each point a separate group. While there are more
+	than K groups combine the two groups who have the smallest distance between
+	their farthest neighbors. The farthest neighbors consists of the point in
+	Group-A that is farthest to the point in Group-B (for example).</p>
+	
+	<h3>Heirarchical K-Means Average Neighbors</h3>
+	<p>Start by considering each point a separate group. While there are more
+	than K groups combine the two groups who have the smallest distance between
+	the average distance between the points in two group neighbors.</p>
+	
+	<h3>Heirarchical K-Means Neighborhood</h3>
+	<p>Start by considering each point a separate group. While there are more
+	than K groups combine the two groups who have the smallest distance between
+	the centers of the two groups.</p>
+	</section>
+
+	<section>
+	<h2>Linear Discriminant Functions</h2>
+	<p>After the data points have been classified into groups a function can be 
+	created to group an arbitrary point into one of classes. In these examples
+	I'm using linear functions; hence, they are called linear discriminant
+	functions (or LDF). Below I describe several methods to calculate LDFs.</p>
+	
+	<h3>Perceptron</h3>
+	<p>We are looking for a vector (which I'll call V) that separates Class A
+	and Class B. Performing a dot product of V with a member of Class A should
+	result in a positive number while performing a dot product of V with a
+	member of Class B should result in a negative number. Whenever a point is
+	misclassified, the perceptron is adjusted. The perception is updated until
+	all of the points are classified correctly (or too many iterations have
+	occured).</p>
+	
+	<h3>Mean Squared Error (and Fisher's Variant of it)</h3>
+	<p>In this case, we are looking for a vector that has the smallest possible
+	mean squared error between the classified points and the linear discriminant
+	function.</p>
+	
+	<h3>Fisher (Scatter Matrix)</h3>
+	<p>Uses matrices to describe both the differences within a class and the
+	differences between the classes. Those matrices are uses to compute a linear
+	discriminant function.</p>
+	
+	<h3>Ho Kashup</h3>
+	<p>Similar to the mean square error; however, this uses a gradient descent
+	to find the solution. MSE used matrices.</p>
+</article>
+
+<script type="text/javascript" src="js/matrix.js" ></script>
+<script type="text/javascript" src="js/vector.js" ></script>
+<script type="text/javascript" src="js/cluster-class.js" ></script>
+<script type="text/javascript" src="js/grouping.js" ></script>
+<script type="text/javascript" src="js/ldf.js" ></script>
+<script type="text/javascript" src="js/scoring.js" ></script>
+<script type="text/javascript" src="js/data-sets.js" ></script>
+<script type="text/javascript">
+//ldf_calculate_perceptronAug,ldf_calculate_mse,ldf_calculate_fisher,ldf_calculate_scatter,ldf_calculate_ho_kashyap
+var POINTS = [];
+var CLUSTERS = [];
+var MEANS = [];
+var HEIR = [];
+var DISTANCE = 10;
+var K = 2;
+var COLORS = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#000000"];
+var X = 0;
+var Y = 1;
+var LDF_FUNC = ldf_calculate_perceptronAug; 
+var LDF_MACH = 0;
+var LDF_COLOR = "#000";
+var LDF_OPT = {
+		maxIter: 1000,
+		maxErr: 1,
+		//for fisher
+		//isFisher: 1
+		//for MSE
+		//isFisher: 0
+	};
+
+/*************************************************************************[UI]*
+ * Read Input Points, read the points in the text box, return array
+ */
+function ui_read_points(){
+	//create the array of points
+	var POINTS = [];
+	//get the input text that represents the list of points
+	var text  = document.getElementById("inPoints").value;
+	//each point should be on a seperate line
+	var lines = text.split("\n");
+	var i=0; var l = lines.length; var pt; var j;
+	//indicate that we don't knwo the dimensionality of our data
+	var dim = -1;
+	//iterate over all of the lines
+	for(i=0; i<l; i+=1){
+		//split the line at a ',' so the data is x,y
+		pt = lines[i].split(",");
+		//if we don't know the dimension and we have data
+		if(dim === -1 && pt.length > 1){ 
+			//update the dimension
+			dim = pt.length;
+		}
+		//if we actually have some type of data
+		if(pt !== null){
+			//if the dimensions agree
+			if(pt.length === dim){
+				//add the point to the points array
+				POINTS[POINTS.length] = [];
+				for(j=0; j<dim; j++){
+					POINTS[POINTS.length-1][j] = parseFloat(pt[j]);
+				}
+			}//else{
+				//console.info("DATA: '"+lines[i]+"' appears to have the wrong # of dimensions");
+			//}
+		}
+	}
+	return POINTS;
+}
+/***********************************************************************[UTIL]*
+ * Rescale Points, rescales the points
+ */
+function ui_rescale_points(pts,newMin,newSize){
+	//get the number of points
+	var l = pts.length;
+	//get the dimensionality of the data
+	var d = pts[0].length;
+	//array for max's and min's
+	var min = []; var max = []; var range = [];
+	//temp for iterating
+	var i; var j; var pt=pts[0]; var x;
+	//start with the max/min in the data set
+	for(i=0; i<d; i+=1){
+		max[i] = pt[i];
+		min[i] = pt[i];
+	}
+	//find the max's and min's
+	//iterate over every point
+	for(i=0; i<l; i+=1){
+		pt = pts[i];
+		//iterate over every dim
+		for(j=0; j<d; j+=1){
+			if(max[j] < pt[j]){max[j] = pt[j];}
+			if(min[j] > pt[j]){min[j] = pt[j];}
+		}
+	}
+	//compute the ranges for each dimension
+	for(j=0; j<d; j+=1){
+		range[j] = max[j]-min[j];
+	}
+	//we have the max and min, so rescale all points
+	//iterate over every point
+	for(i=0; i<l; i+=1){
+		//iterate over every dim
+		for(j=0; j<d; j+=1){
+			x = pts[i][j];
+			//shift and scale
+			pts[i][j] = newMin + newSize*((x - min[j])/range[j]);
+		}
+	}
+	//return the rescaled points
+	return pts;
+}
+/*************************************************************************[UI]*
+ * Rescales pts on button click
+ */
+function ui_do_rescale_points(){
+	var pts = ui_read_points();
+	pts = ui_rescale_points(pts,0,240);
+	//clear the canvas and the text input
+	ui_clear_points();
+	//dom element that stores the text
+	var textArea = document.getElementById("inPoints");
+	//canvas context to draw the pts
+	var ctxCluster = document.getElementById("canvasCluster").getContext("2d");
+	//tmp for iterating
+	var i, j; var l = pts.length;
+	//iterate up to the last dim
+	var d_1 = pts[0].length-1;
+	//iterate over every point
+	for(i=0; i<l; i+=1){
+		//iiterate over all but the last dimension
+		for(j=0; j<d_1; j+=1){
+			//output: num,
+			textArea.value += pts[i][j]+",";
+		}
+		//put the last number with a new line
+		textArea.value += pts[i][j] + "\n";
+		
+	}
+	ui_draw_current_points();
+}
+/*************************************************************************[UI]*
+ * Updates the variables that store user input
+ */
+function ui_get_input(){
+	POINTS = ui_read_points();
+	//get the distance threshold
+	var d = parseFloat(document.getElementById("inDistance").value,10);
+	if(d > 0){DISTANCE = d;}else{alert("You need a positive distance!");}
+	//get k (the number of means)
+	var k = parseInt(document.getElementById("inK").value,10);
+	if(k > 0){K = k;}else{alert("You need a positive (integer) K!");}
+	
+	LDF_COLOR = document.getElementById("inColor").value;
+	LDF_OPT = { maxIter: 1000, maxErr: 1 };
+	LDF_MACH = document.getElementById("inLDF_Method").selectedIndex;
+	switch(document.getElementById("inLDF_Type").selectedIndex){
+		case 0: LDF_FUNC = ldf_calculate_perceptronAug; break;
+		case 1: LDF_FUNC = ldf_calculate_mse; break;
+		case 2: LDF_FUNC = ldf_calculate_fisher; break;
+		case 3: LDF_FUNC = ldf_calculate_scatter; break;
+		case 4: LDF_FUNC = ldf_calculate_ho_kashyap; break;
+		default:LDF_FUNC = ldf_calculate_perceptronAug; break;
+	}
+	
+	//NEEDS TO BE VALIDATED
+	X = parseInt(document.getElementById("inX").value,10);
+	Y = parseInt(document.getElementById("inY").value,10);
+	
+}
+/*************************************************************************[UI]*
+ * Runs the clustering algorithm and draws the results
+ */
+function ui_run_clustering(){
+	//update he input
+	ui_get_input();
+	//will store if ever point has been placed in a cluster
+	var allClustered = 0;
+	//clears the current list of clusters
+	CLUSTERS = [];
+	//determine how many points we have
+	var l = POINTS.length;
+	//determine the dimensionality of the data
+	var dim = POINTS[0].length;
+	//we need to restructure the points to keep track of which have been added
+	//the new points will objects with the original points data
+	//and a flag to indicate if they have been added
+	var PTS = []; var i;
+	for(i=0; i<l; i+=1){ PTS[i] = {C: 0, DATA: POINTS[i]}; }
+	//limit the number of iterations
+	var max = l;
+	//as long as there are points that need to be clustered
+	//and we havent exceded the maximum number of iterations
+	while(allClustered === 0 && --max){
+		//start the loop assuming everything is clustered
+		allClustered = 1;
+		//create a new cluster
+		//CLUSTERS[CLUSTERS.length] = [];
+		CLUSTERS[CLUSTERS.length] = cluster_create(dim);
+		//check each point
+		for(i=0; i<l; i+=1){
+			//if the point has not been clustered yet
+			if(PTS[i].C === 0){
+				//cluster it in the new group (note this function is recursive)
+				group_by_clustering(CLUSTERS[CLUSTERS.length-1],PTS[i],PTS,DISTANCE);
+				//set a flag to say we're not done clustering
+				//cuase we just clustered something we need to check everything again
+				//if something wasn't clustered we'll have to make a new cluster and repeat
+				allClustered = 0;
+				//break out of the for loop
+				break;
+			}
+		}
+	}
+	//if the last cluster is empty
+	if(cluster_get_num_points(CLUSTERS[CLUSTERS.length-1])===0){
+		//remove it
+		CLUSTERS.pop();
+	}
+	//draw the stuff!
+	ui_draw_scores("CL",CLUSTERS);
+	ui_draw_clusterArray("canvasCluster",CLUSTERS,X,Y,COLORS,DISTANCE);
+}
+function ui_run_heir_near(){
+	ui_get_input();
+	//console.info(POINTS);
+	CLUSTERS = group_by_heirarchy(K,POINTS,distance_nearest_neighbor);
+	ui_draw_scores("NN",CLUSTERS);
+	ui_draw_clusterArray("canvasCluster",CLUSTERS,X,Y,COLORS,DISTANCE);
+}
+function ui_run_heir_far(){
+	ui_get_input();
+	CLUSTERS = group_by_heirarchy(K,POINTS,distance_farthest_neighbor);
+	ui_draw_scores("FN",CLUSTERS);
+	ui_draw_clusterArray("canvasCluster",CLUSTERS,X,Y,COLORS,DISTANCE);
+}
+function ui_run_heir_avg(){
+	ui_get_input();
+	CLUSTERS = group_by_heirarchy(K,POINTS,distance_average_neighbor);
+	ui_draw_scores("AN",CLUSTERS);
+	ui_draw_clusterArray("canvasCluster",CLUSTERS,X,Y,COLORS,DISTANCE);
+}
+function ui_run_heir_center(){
+	ui_get_input();
+	CLUSTERS = group_by_heirarchy(K,POINTS,distance_center_neighbor);
+	ui_draw_scores("NC",CLUSTERS);
+	ui_draw_clusterArray("canvasCluster",CLUSTERS,X,Y,COLORS,DISTANCE);
+}
+/*************************************************************************[UI]*
+ * Runs the K-means algorithm and draws the results
+ */
+function ui_run_k_means(){
+	//update the input that we need
+	ui_get_input();
+	//the k means function does all of the work
+	MEANS = group_by_k_means(K,POINTS);
+	ui_draw_scores("KM",MEANS);
+	//console.info(score_avg_error(MEANS));
+	//console.info(score_max_error(MEANS));
+	//console.info(score_min_error(MEANS));
+	//console.info(score_med_error(MEANS));
+	ui_draw_clusterArray("canvasCluster",MEANS,X,Y,COLORS,DISTANCE);
+}
+/*************************************************************************[UI]*
+ * Draws a score
+ */
+function ui_draw_scores(ClusterMethod,Clusters){
+	var id = "td_"+"SAVGE_"+ClusterMethod;
+	var sc = score_avg_error(Clusters);
+	document.getElementById(id).innerHTML = ui_format_number(sc,1);
+	
+	id = "td_"+"SMEDE_"+ClusterMethod;
+	sc = score_med_error(Clusters);
+	document.getElementById(id).innerHTML = ui_format_number(sc,1);
+	
+	id = "td_"+"SMINE_"+ClusterMethod;
+	sc = score_min_error(Clusters);
+	document.getElementById(id).innerHTML = ui_format_number(sc,1);
+	
+	id = "td_"+"SMAXE_"+ClusterMethod;
+	sc = score_max_error(Clusters);
+	document.getElementById(id).innerHTML = ui_format_number(sc,1);
+	
+	id = "td_"+"TrScT_"+ClusterMethod;
+	sc = score_trace_scatter_matrix(Clusters);
+	document.getElementById(id).innerHTML = ui_format_number(sc,1);
+	
+	id = "td_"+"SwSb_"+ClusterMethod;
+	sc = score_trace_sw_sb(Clusters);
+	document.getElementById(id).innerHTML = ui_format_number(sc,1);
+	
+	id = "td_"+"SwSt_"+ClusterMethod;
+	sc = score_trace_sw_st(Clusters);
+	document.getElementById(id).innerHTML = ui_format_number(sc,1);
+	
+	id = "td_"+"DetSW_"+ClusterMethod;
+	sc = score_det_sw(Clusters);
+	document.getElementById(id).innerHTML = ui_format_number(sc,1);
+	
+	id = "td_"+"DetSWST_"+ClusterMethod;
+	sc = score_det_swSt(Clusters);
+	document.getElementById(id).innerHTML = ui_format_number(sc,1);
+	
+	ui_highlight_scores("tableScore","score-high","score-low");
+}
+/*************************************************************************[UI]*
+ * Highlights lowest/highest scores
+ */
+function ui_highlight_scores(tableId,highClass,lowClass){
+	var rows = document.getElementById(tableId).getElementsByTagName("tr");
+	var l = rows.length; var i;
+	var min; var max; var temp; var tds; var j; var cnt;
+	//skip the first row because it is buttons
+	for(i=1; i<l; i+=1){
+		//get the max and min in the row
+		tds = rows[i].getElementsByTagName("td");
+		cnt = tds.length;
+		//skip the first column
+		max = parseFloat(tds[1].innerHTML);
+		min = max;
+		
+		for(j=2; j<cnt; j+=1){
+			
+			temp = parseFloat(tds[j].innerHTML);
+			if(temp > max){max = temp;}
+			if(temp < min){min = temp;}
+		}
+		//if the max and min are the same don't color anything
+		if(max !== min){
+			//we found the max and min, apply styling
+			for(j=1; j<cnt; j+=1){
+				temp = parseFloat(tds[j].innerHTML);
+				if(temp === max){tds[j].className = highClass;}else
+				if(temp === min){tds[j].className = lowClass; }else
+				                {tds[j].className = "";}
+			}
+		}
+	}
+}
+/*************************************************************************[UI]*
+ * Draw Cluster Array
+ */
+function ui_draw_clusterArray(Canvas,ClusterArray,xDim,yDim,Colors,Distance){
+	var ctxCluster = document.getElementById(Canvas).getContext("2d");
+	//clear the canvas
+	ctxCluster.globalAlpha = 1.0;
+	ctxCluster.lineWidth = 1.0;
+	ctxCluster.fillStyle = "#FFFFFF";
+	ctxCluster.strokeStyle = "#FFFFFF";
+	ctxCluster.clearRect(0,0,320,320);
+	ctxCluster.fillRect(0,0,320,320);
+	var i, j, pts, l;
+	l = ClusterArray.length;
+	for(i=0; i<l; i+=1){
+		//pts = ClusterArray[i].PTS.length;
+		ctxCluster.fillStyle = Colors[i%Colors.length]; 
+		ctxCluster.strokeStyle = Colors[i%Colors.length];
+		ui_draw_cluster(Canvas,ClusterArray[i],xDim,yDim,Colors[i%Colors.length],Distance);
+	}
+	
+	//var arrayLDF = [ldf_calculate_perceptronAug,ldf_calculate_mse,ldf_calculate_fisher,ldf_calculate_scatter,ldf_calculate_ho_kashyap]
+	if(LDF_MACH === 0){
+		ui_draw_ldm_dual(Canvas,ClusterArray,xDim,yDim,LDF_COLOR,LDF_FUNC,LDF_OPT);
+	}else if(LDF_MACH === 1){
+		ui_draw_ldm_ij(Canvas,ClusterArray,xDim,yDim,LDF_COLOR,LDF_FUNC,LDF_OPT);
+	}
+	
+}
+function ui_calc_draw_ldf(Canvas,ClusterArray,xDim,yDim,Color,funcLDF,Opt){
+	var LDF = funcLDF(ClusterArray[xDim],ClusterArray[yDim],Opt);
+	ui_draw_ldf_augmented(Canvas,LDF,xDim,yDim,Color);
+}
+//Multi-Cluster LDFs: (Class[i] vs Class[j])
+function ui_draw_ldm_ij(Canvas,ClusterArray,xDim,yDim,Color,funcLDF,Opt){
+	var LDF; var i; var j;
+	var l = ClusterArray.length;
+	for(i=0; i<l; i+=1){
+		for(j=i+1; j<l; j+=1){
+			//compute the LDF for this cluster & other cluster
+			LDF = funcLDF(ClusterArray[i],ClusterArray[j],Opt);
+			//draw it
+			if(LDF!==null){ ui_draw_ldf_augmented(Canvas,LDF,xDim,yDim,Color); }
+		}	
+	}
+}
+//Multi-Cluster LDFs: (Class + not Class)
+function ui_draw_ldm_dual(Canvas,ClusterArray,xDim,yDim,Color,funcLDF,Opt){
+	var LDF; var tmpNotCluster;	var i; var j;
+	var l = ClusterArray.length;
+	for(i=0; i<l; i+=1){
+		//create the 'not' cluster
+		tmpNotCluster = null;
+		for(j=0; j<l; j+=1){
+			if(j===i){continue;}
+			//if we haven't started clustering 
+			if(tmpNotCluster === null){
+				//create a copy of the first cluster
+				tmpNotCluster = cluster_copy_scale(ClusterArray[j],1);
+			}else{
+				//just merge the other clusters with our first cluster
+				cluster_merge(tmpNotCluster,ClusterArray[j]);
+			}
+		}
+		//compute the LDF for this cluster & not cluster
+		LDF = funcLDF(ClusterArray[i],tmpNotCluster,Opt);
+		//draw it, if we got a valid result
+		if(LDF!==null){ ui_draw_ldf_augmented(Canvas,LDF,xDim,yDim,Color); }
+	}
+}
+function ui_draw_ldf_augmented(Canvas,LDF,xDim,yDim,Color){
+	var ctx = document.getElementById(Canvas).getContext("2d");
+	ctx.strokeStyle = Color;
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	//compute a point on the line
+	y = -1000;
+	//LDF.X*x + LDF.Y*y + LDF.OFF == 0
+	//x + LDF.Y*y/LDF.x + LDF.OFF/LDF.x ==0
+	//x = -((LDF.OFF/LDF.X) + (LDF.Y/LDF.X)*y)
+	if(LDF[xDim+1] === 0){
+		x = 0;
+	}else{
+		x = -((LDF[0]/LDF[xDim+1]) + (LDF[yDim+1]/LDF[xDim+1])*y);
+		//x = -y*(LDF.Y/LDF.X) - (LDF.OFF/LDF.X);
+	}
+	//console.info(x+","+y);
+	//y=0;x=0;
+	//resacle the line
+	//x = x - minX;
+	//x = (x/w)*canvas.width;
+	//y = y - minY;
+	//y = (y / h)*canvas.height;
+	//console.info("r: "+x+","+y);
+	ctx.moveTo(x, y);
+	//compute another point on the line
+	y = 1000;
+	if(LDF[xDim+1] === 0){
+		x = 0;
+	}else{
+		x = -((LDF[0]/LDF[xDim+1]) + (LDF[yDim+1]/LDF[xDim+1])*y);
+		//x = -y*(LDF.Y/LDF.X) - (LDF.OFF/LDF.X);
+	}
+	//x=100;
+	//console.info(x+","+y);
+	//goto the other corner
+	//y=LDF.Y*1000;x=LDF.X*1000;
+	//x = x - minX;
+	//x = (x/w)*canvas.width;
+	//y = y - minY;
+	//y = (y / h)*canvas.height;
+	//console.info("r: "+x+","+y);
+	ctx.lineTo(x,y);
+	ctx.stroke();
+}
+function ui_draw_ldf(Canvas,LDF,Color){
+	var ctx = document.getElementById(Canvas).getContext("2d");
+	ctx.strokeStyle = Color;
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	//compute a point on the line
+	y = -1000;
+	//LDF.X*x + LDF.Y*y + LDF.OFF == 0
+	//x + LDF.Y*y/LDF.x + LDF.OFF/LDF.x ==0
+	//x = -((LDF.OFF/LDF.X) + (LDF.Y/LDF.X)*y)
+	if(LDF.X === 0){
+		x = 0;
+	}else{
+		x = -((0/LDF[0]) + (LDF[1]/LDF[0])*y);
+		//x = -y*(LDF.Y/LDF.X) - (LDF.OFF/LDF.X);
+	}
+	//console.info(x+","+y);
+	//y=0;x=0;
+	//resacle the line
+	//x = x - minX;
+	//x = (x/w)*canvas.width;
+	//y = y - minY;
+	//y = (y / h)*canvas.height;
+	//console.info("r: "+x+","+y);
+	ctx.moveTo(x, y);
+	//compute another point on the line
+	y = 1000;
+	if(LDF.X === 0){
+		x = 0;
+	}else{
+		//x = -y*(LDF.Y/LDF.X) - (LDF.OFF/LDF.X);
+		//x = -((LDF.Off/LDF.X) + (LDF.Y/LDF.X)*y);
+		x = -((0/LDF[0]) + (LDF[1]/LDF[0])*y);
+	}
+	//x=100;
+	//console.info(x+","+y);
+	//goto the other corner
+	//y=LDF.Y*1000;x=LDF.X*1000;
+	//x = x - minX;
+	//x = (x/w)*canvas.width;
+	//y = y - minY;
+	//y = (y / h)*canvas.height;
+	//console.info("r: "+x+","+y);
+	ctx.lineTo(x,y);
+	ctx.stroke();
+}
+/*************************************************************************[UI]*
+ * Draw Cluster
+ */
+function ui_draw_cluster(Canvas,Cluster,xDim,yDim,Color,Distance){
+	var ctxCluster = document.getElementById(Canvas).getContext("2d");
+	var j; var pts = cluster_get_num_points(Cluster);//Cluster.length;
+	ctxCluster.fillStyle = Color; 
+	ctxCluster.strokeStyle = Color;
+	var X; var Y;
+	for(j=0; j<pts; j+=1){
+		X = cluster_get_point(Cluster,j)[xDim];
+		Y = cluster_get_point(Cluster,j)[yDim];
+		//draw center of each point
+		ctxCluster.globalAlpha = 1;
+		ctxCluster.beginPath();
+		ctxCluster.arc(X, Y, 2, 0, Math.PI*2, 1);
+		ctxCluster.closePath();
+		ctxCluster.fill();
+		//draw area (so you can compare it with clustering)
+		ctxCluster.globalAlpha = 0.05;
+		ctxCluster.beginPath();
+		ctxCluster.arc(X, Y, Distance, 0, Math.PI*2, 1);
+		ctxCluster.closePath();
+		ctxCluster.fill();
+		//draw radius (also so you can compare it with clustering)
+		ctxCluster.globalAlpha = 0.3;
+		ctxCluster.beginPath();
+		ctxCluster.arc(X, Y, Distance, 0, Math.PI*2, 1);
+		ctxCluster.closePath();
+		ctxCluster.stroke();
+	}
+	//draw the center (mean) of the points in this mean as an 'x'
+	X = cluster_calc_center(Cluster)[xDim];
+	Y = cluster_calc_center(Cluster)[yDim];
+	ctxCluster.globalAlpha = 1;
+	ctxCluster.beginPath();
+	ctxCluster.moveTo(X-8, Y-8);
+	ctxCluster.lineTo(X+8, Y+8);
+	ctxCluster.moveTo(X-8, Y+8);
+	ctxCluster.lineTo(X+8, Y-8);
+	ctxCluster.stroke();
+}
+/*************************************************************************[UI]*
+ * ui_clear_pointss the canvas and list of points
+ */
+function ui_clear_points(){
+	POINTS = [];
+	document.getElementById("inPoints").value = "";
+	var ctxCluster = document.getElementById("canvasCluster").getContext("2d");
+	//clear the canvas
+	ctxCluster.globalAlpha = 1.0;
+	ctxCluster.fillStyle = "#FFFFFF";
+	ctxCluster.strokeStyle = "#FFFFFF";
+	ctxCluster.clearRect(0,0,320,320);
+	ctxCluster.fillRect(0,0,320,320);
+}
+/*************************************************************************[UI]*
+ * Takes a number num and shows no more than digits digits, returns a string
+ */
+function ui_format_number(num,digits){
+	//if the number is higher than 10^digits 
+	if(num > Math.pow(10,digits)){
+		//we've got too many digits
+		return ""+num.toExponential(digits);
+	}else{
+		return ""+num.toPrecision(digits);
+	}
+}
+/*************************************************************************[UI]*
+ * Handles mouse clicks on the canvas
+ * When the user clicks on the canvas this function:
+ *  (1) Draws a black point to represent where the user clicked
+ *  (2) Adds the point to the list of data points
+ */
+function ui_handle_canvas_click(e){
+	//var t = e.target;
+	/*
+	POINTS[POINTS.length] = {X: e.pageX-e.target.clientLeft, Y: e.pageY-e.target.clientTop};
+	//console.info(e);
+	//console.info(-e.target.clientLeft + e.pageX);
+	*/
+	var baseObj = e.target;
+	//find the position of the base element on the page
+	var baseX = parseInt(baseObj.offsetLeft,10);
+	var baseY = parseInt(baseObj.offsetTop,10);
+	while(baseObj.offsetParent !== null){
+		baseObj = baseObj.offsetParent;
+		baseX += parseInt(baseObj.offsetLeft,10);
+		baseY += parseInt(baseObj.offsetTop,10);
+	}
+	var X = (e.pageX - baseX);
+	var Y = (e.pageY - baseY);
+	//get the coordinates relative to the canvas, add to list
+	document.getElementById("inPoints").value += "\n";
+	document.getElementById("inPoints").value += X;
+	document.getElementById("inPoints").value += ",";
+	document.getElementById("inPoints").value += Y;
+	//draw the point
+	var ctxCluster = document.getElementById("canvasCluster").getContext("2d");
+	ctxCluster.globalAlpha = 1.0;
+	ctxCluster.fillStyle = "#000000";
+	ctxCluster.strokeStyle = "#000000";
+	ctxCluster.beginPath();
+	ctxCluster.arc(X, Y, 2, 0, Math.PI*2, 1);
+	ctxCluster.closePath();
+	ctxCluster.fill();
+	//docX= event.pageX;
+    //docY= event.pageY;
+}
+/*********************************************************************************************[UI]*
+ * Draws the points on the canvas
+ */
+function ui_draw_current_points(){
+	var ctxCluster = document.getElementById("canvasCluster").getContext("2d");
+	    ctxCluster.globalAlpha = 1.0;
+	    ctxCluster.fillStyle = "#000000";
+	    ctxCluster.strokeStyle = "#000000";
+		ctxCluster.clearRect(0,0,320,320);
+	ui_get_input();
+	var l = POINTS.length; var ptx, pty;
+	for(var i=0; i<l; i+=1){
+		ptx = POINTS[i][X]; //X is the dimension that will be plotted as x
+		pty = POINTS[i][Y]; //Y is the dimension that will be plotted as y
+		ctxCluster.beginPath();
+		ctxCluster.arc(ptx, pty, 2, 0, Math.PI*2, 1);
+		ctxCluster.closePath();
+		ctxCluster.fill();
+	}
+}
+onload = function(){
+	document.getElementById("canvasCluster").onclick = ui_handle_canvas_click;
+	document.getElementById("btCluster").onclick = ui_run_clustering;
+	document.getElementById("btKMeans").onclick = ui_run_k_means;
+	document.getElementById("btKHeirNear").onclick = ui_run_heir_near;
+	document.getElementById("btKHeirFar").onclick = ui_run_heir_far;
+	document.getElementById("btKHeirAvg").onclick = ui_run_heir_avg;
+	document.getElementById("btKHeirCenter").onclick = ui_run_heir_center;
+	document.getElementById("btui_clear_points").onclick = ui_clear_points;
+	document.getElementById("btScale").onclick = ui_do_rescale_points;
+	//setTimeout(function(){
+		var Make = function(f){
+			return function(){
+				document.getElementById("inPoints").value = f();
+				ui_draw_current_points();
+			};
+		};
+		document.getElementById("btData2D1").onclick = Make(ui_load_points_data2D_1);
+		document.getElementById("btData2D2").onclick = Make(ui_load_points_data2D_2);
+		document.getElementById("btData3D1").onclick = Make(ui_load_points_data3D_1);
+		document.getElementById("btData3D2").onclick = Make(ui_load_points_data3D_2);
+		document.getElementById("btDataDef").onclick = Make(ui_load_points_default);
+		document.getElementById("btData1").onclick = Make(ui_load_points_data1);
+		document.getElementById("btData2").onclick = Make(ui_load_points_data2);
+		document.getElementById("btData3").onclick = Make(ui_load_points_data3);
+		document.getElementById("btData4").onclick = Make(ui_load_points_data4);
+	//},500);
+};
+
+</script>
+
+</body>
+</html>
